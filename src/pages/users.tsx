@@ -1,129 +1,81 @@
 /*
-    Static Generation with getStaticProps
+In the previous lesson we learned about Static Generation 
+w/ data fetching. We learned about the getStaticProps() function
+which we can use to inject props to our component. 
 
-    Let's learn about Static Generation w/Data.
+Now although this works well, it is typically now how you would
+write production application. For example, the JSX for a User component 
+would be written in its own file and invoked inside the UserList 
+component, passing in the necessary props.
 
-    That is, learning how to fetch data ahead of time when statically 
-    generating html.
+In this lesson, let's discuss about that. 
 
-    For our example, let's assume we need to display a list of users
-    whose data is fetched from an API endpoint. 
+Now what we need is a seperate component called User, which will accept
+a user's details as props and render the username and email. 
 
-    For the API we're going to be using JSONPlaceholder and render
-    the users/ data.
+For that, we need to create a file. 
 
-    Endpoint:
-    https://jsonplaceholder.typicode.com/users
+But the question is, where do we place that file? Should we 
+create it inside the pages folder? 
 
-    In NextJS when you export a page component, you can also 
-    export an async function called getStaticProps. 
+No. 
 
-    If you do export that async function, it will run at build time 
-    in production and inside the function, you can fetch external data
-    and send it as props to the page.
+When building a Next.js application, pages are very special. They
+give you added benefits like automatic routing, and access to 
+special functions like getStaticProps. However, these 
+benefits shouldn't be available for presentation components
+that we write in our application. Hence, they shouldn't be
+created inside the pages folder. 
 
-    Now if that's a bit confusing, let's understand better by implementing
-    the function. 
+Instead, we can create them in a separate 'components' folder.
+So within the project root, create a new folder called 'components'. 
+Or, if you are using 'src/' folder, you can create the 
+'components' folder inside the 'src/' folder.
 
-    In our users.tsx file, we are going to export an async function
-    called getStaticProps. In the function body, we can make an API
-    request to the JSONPlaceholder API. And for that we make use of 
-    axios. We capture and then console.log() the response.data. When we
-    save the file and head back to the browser and refresh, we see that the 
-    terminal lists the users logged. Why is the terminal logging the 
-    response.data and NOT in the browser console? We will get back to that.
+Now, the the folder name is not a strict convention, but it is 
+something that makes sense. 
 
+Within the './src/components/' folder, create a new file called 'user.tsx'.
 
-        export async function getStaticProps() {
-            const response = await axios.get('https://jsonplaceholder.typicode.com/users');
-            const data = response.data;
-            console.log(data);
-        }
+In React, the naming convention for file names is Pascal Case, but 
+from what was observed for Next.js, the file names are named in Kebab 
+Case, so we are following the same.
 
+Within the 'user.tsx' file, we define the <User /> component. 
 
-    For now though we see that the fetching has worked and we have 
-    our data now. Next step is to see how we can pass that data 
-    to the component defined above <UserList />. NextJS has a convention 
-    for that. In the function's current state, NextJS will
-    throw an error saying that getStaticProps has not returned an object.
+    function User({ user }) {
+        return (
+            <>
+                <p>{user.name}</p>
+                <p>{user.email}</p>
+            </>
+        );
+    }
 
-    So as you can see, the convention is to return an object. Let's go 
-    ahead and update getStaticProps so that it returns an object.
+    export default User;
 
-    The returned object will contain a property called 'props', 
-    which again must be an object. The 'props' object can contain any
-    number of key/value pairs, which will automatically be injected as 
-    props into the component.
+Now back in '.src/pages/users.tsx' we can replace part of the 
+JSX with the <User /> component. 
 
-        
-        export async function getStaticProps() {
-            const response = await axios.get('https://jsonplaceholder.typicode.com/users');
-            const data = response.data;
-            console.log(data);
+If you now save the file and look at the browser, the UI remains
+unaffected, but this time our code is organized better.
 
-            return {
-                props: {
-                    users: data,
-                }
-            };
-        }
+So what you should take away from this lesson is the difference 
+between a page and a component. If you want to expose some 
+UI as a route in your application create it as a page. If you are 
+simply looking to adhere to the component based architecture 
+and organize your JSX, go with components. 
 
-
-    We are creating a property inside the 'props' object named 'users', 
-    which has a value of 'data' (the response.data from axios).
-
-    When we return the props from getStaticProps, our <UserList /> component
-    will receive props at build time. So we can pass in props as an argument.
-    We can also simply destructure the 'user' property that is inside the 
-    return statement in getStaticProps.
-
-    Now that we have a list of users, rendering is simple React code.
-    With the finished component below, if you visit the users page and 
-    take a look at the page source, you will see that the HTML corresponding
-    to the content you see on the page is present. We have successfully 
-    pre-rendered the users page after fetching external data.
-
-    And to re-iterate when you want to use this type of rendering, a common
-    example is displaying a list of articles on your blog page, or a list of 
-    products on your ecommerce page, or even displaying a list of topics on
-    your documentation page. 
-
-    All you have to do is define the async function getStaticProps(), fetch
-    your data within the function, and return an object with the necessary props.
-    The props will be available for use in your component.
+Components don't need the special features that Next.js provides 
+for pages in an application.
 */
 
+import User from '../components/user';
+import { UserType } from '../types/user';
 import axios from 'axios';
-import { z } from 'zod';
-
-const UsersSchema = z.object({
-    id: z.number(),
-    name: z.string(),
-    username: z.string(),
-    email: z.string().email(),
-    address: z.object({
-        street: z.string(),
-        suite: z.string(),
-        city: z.string(),
-        zipcode: z.string(),
-        geo: z.object({
-            lat: z.string(),
-            lng: z.string()
-        })
-    }),
-    phone: z.string(),
-    website: z.string().url(),
-    company: z.object({
-        name: z.string(),
-        catchPhrase: z.string(),
-        bs: z.string()
-    })
-}).array();
-
-interface Users extends z.infer<typeof UsersSchema> {};
 
 interface UserListProps {
-    users: Users
+    users: UserType[];
 }
 
 function UserList({ users }: UserListProps) {
@@ -134,8 +86,7 @@ function UserList({ users }: UserListProps) {
                 users.map((user) => {
                     return (
                         <div key={user.id}>
-                            <p>{user.name}</p>
-                            <p>{user.email}</p>
+                            <User user={user} />
                         </div>
                     )
                 })
