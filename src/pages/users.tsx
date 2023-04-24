@@ -84,7 +84,6 @@ export default UserList;
 export async function getStaticProps() {
     const response = await axios.get('https://jsonplaceholder.typicode.com/users');
     const data = response.data;
-    console.log(data);
 
     return {
         props: {
