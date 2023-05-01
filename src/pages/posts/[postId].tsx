@@ -1,142 +1,121 @@
 /*
-    Static-Site Generation w/ getStaticProps
+    Fetching Paths for getStaticPaths
 
-    In the previous lesson we tried to implement
-    static generation using getStaticProps for a page
-    with dynamic route parameter.
+    In our previous example, we learned about the 
+    getStaticPaths function which is used to inform Next.js 
+    about the different values to support when statically
+    generating a page. 
 
-    When we navigated to the page though, we were 
-    presented with the following error:
+    However for our understanding of getStaticPaths, we
+    have restricted the total number of posts to 3 in 
+    <PostsList />. 
 
-    Error: getStaticPaths is required for dynamic SSG pages and is missing for '/posts/[postId]'.
-    Read more: https://nextjs.org/docs/messages/invalid-getstaticpaths-value
-    
-    So Next.js is basically telling us that we need to implement
-    getStaticPaths, whatever that may be, to get rid of the error.
+    This also helped us with hard coding a list of three 
+    objects in the paths array inside getStaticPaths in 
+    [postId].tsx.
 
-    But what is exactly getStaticPaths? And why do we need it 
-    to fix this error?
+    Now we can all agree this is not going to work 
+    in a practical real world application. For starters,
+    we don't want just the tree posts to be shown in 
+    <PostsList />.
 
-    For our example, we are asking Next.js to pre-render the HTML
-    for a route which contains a dynamic parameter `postId`. 
+    The API sends 100 posts and we want all 100 posts 
+    to be displayed in our <PostsList /> component.
 
-    However, we also need to consider the fact that a dynamic 
-    parameter means that we won't be having one single page. 
-    We would be having multiple pages, for different
-    values of `postId`. The HTML of the page would remain 
-    the same, but the data would differ for every `postId`.
+    And as far as getStaticPaths is concerned, the 
+    paths should be fetched dynamically and not hard-coded. 
 
-    So Next.js is telling us, hey the `postId` can be 
-    either 1, 2, 3, or even 1 million. I have no clue what
-    possible values `postId` can accept. So I need you to 
-    tell me what `postId`s I need to consider when 
-    generating the pages at build time. If you don't, I'm 
-    going to throw an error that you have not specified
-    the path parameter for pre-rendering this page. 
+    Let's fix that. 
 
-    Which is exactly what happened in our case. 
+    Step 1:
+    In /posts/index.tsx we're going to remove the slice method. 
+    This will load all the 100 posts in the /posts route. But now 
+    that we are loading 100 posts, we also need to inform 
+    Next.js that 100 pages need to be statically generated. And 
+    as in the previous example, we do this using the getStaticPaths.
 
-    We have asked Next.js to pre-render this page, but 
-    we haven't informed what the possible values of `postId` are.
+    At the moment in [postId].tsx's getStaticPaths function, we 
+    have 3 postIds hard-coded which will generate three pages.
 
-    And the way we inform that is by using the getStaticPaths() 
-    function. Let's see how to implement it for our [postId] page.
+    We could add 97 more objects here, and that would work... 
+    but that is not a feasible solution.
 
-    In the same page file where we specify getStaticProps(), 
-    that is [postId].tsx, we also specify getStaticPaths() which 
-    is again, an async function.
+    What we need is an array of 100 objects, where each object contains
+    a 'params' key which in turn contains the 'postId'. Now, 
+    the method to fetch all Ids of posts might vary depending 
+    on your backend.
 
-    And from this getStaticPaths() function, we need to return
-    an object. This object must contain a 'paths' key. This 
-    'paths' key determines which paths will be statically 
-    generateed at build time. The 'paths' key is an array of 
-    objects. Each object contains a 'params' key, which in turn 
-    is an object that contains the route parameter with its value.
+    If you have an API that provides the total count of posts, 
+    you can use that to create an array of postIds. However for our
+    scenario, we don't have such an API. 
 
-    In our example we will make 'params' equal to `{ postId: '1' }`.
-    We specified the value of 'postId' to be '1'. What we have done here 
-    is inform Next.js to generate the 'postId' with'postId' parameter 
-    is equal to '1'.
+    What we can do for our example, is reuse the /posts API which 
+    will fetch all of the 100 posts with their postIds. We can then 
+    extract just the postId to create the paths array.
 
-    export async function getStaticPaths() {
-    return {
-        paths: [
-        {
-            params: { postId: '1' },
-        }
-        ]
-    };
-    }
+    So from getStaticProps in /posts/index.tsx we are 
+    going to copy two lines which the lists of posts. 
 
-    If we go back to our /posts/index.tsx page though, we see that
-    we are passing in a total of 3 posts to <PostList />. So 
-    let's make sure we generate three pages.
+        const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
+        const data = response.data;
 
-    So the 'params' array is updated so that it holds three objects.
+    Back in [postId].tsx, we are going to paste that code 
+    within the getStaticPaths function.
 
-        export const getStaticPaths: GetStaticPaths = async () => {
+    Once we have the data which is the list of 100 posts, 
+    we map over it, and return an object with 'params' object and 
+    the 'postId' property.
+
+        const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
+        const data = response.data;
+
+        const paths = data.map((post) => {
             return {
-                paths: [
-                    {
-                        params: { postId: '1' },
-                    },
-                ],
-                fallback: false
+                params: {
+                    postId: `${post.id}`
+                }
             };
-        };
+        });
 
-    Make sure that the 'postId' parameter value is a string.
+    Now if you observe closely, the object returned here 
+    is similar to the hard-coded object from before. 
 
-    There is one last though though. The returned 
-    object must contain another key called 'fallback'. 
+    The API returns a numeric ID but we need a string, which is 
+    why we used template literals for the 'params.postId' value.
 
-    We will talk about what role this 'fallback' plays 
-    in future lessons, but for now, set it's value to 'false'.
+    So we have basically created an array of 100 objects, with 
+    each object contains a 'params' key and the 'postId' 
+    ranges from 1 to 100. 
 
-        export const getStaticPaths: GetStaticPaths = async () => {
-            return {
-                paths: [
-                    {
-                        params: { postId: '1' },
-                    },
-                    {
-                        params: { postId: '2' },
-                    },
-                    {
-                        params: { postId: '3' },
-                    }
-                ],
-                fallback: false
-            };
-        };
+    Now in our return statement, we can comment out the 
+    hard-coded paths array and instead make use of the paths 
+    constant we just created. 
 
-    Let's save the file and head back to the browser and test
-    this out. 
+    So { paths: paths } or we can use the ES6 shorthand and 
+    specify just { paths }.
 
-    So localhost:3000 which is our homepage, navigate to /posts/, and 
-    click on individual posts. 
+    Now let's save both files and head back to the browser, we should 
+    see a list of 100 posts when we navigate to the /posts 
+    route. If we click on the first post, we see the corresponding 
+    details. If we have navigate to the 4th post as well now, the 
+    details are displayed as expect. 
 
-    You can now see that the UI is now displaying the 
-    post id, title, and body. We have fixed the getStaticPaths 
-    error from before.
+    So we have successfully informed Next.js to pre-render 
+    the 100 by dynamically fetching the postIds. 
 
-    We have successfully pre-rendered a page with 
-    dynamic parameters.
+    Like mentioned earlier, the only way we could fetch the 
+    postIds, is by querying the /posts API. In the application
+    you are building, the logic might be different, but 
+    the end goal is the same. We created an array of paths, and 
+    returned it from getStaticPaths. 
 
-    So to summarize what we have done, in the getStaticProps 
-    function, we have extracted 'params' from the 'context'
-    object that getStaticProps() automatically receives, 
-    and from this 'params' object we get hold of the 'postId'
-    route parameter. We make the API call, fetch the data, 
-    and pass it into the page component as props. 
+    Also, if we run the `npm run build` command, you can 
+    see that it is generating 105 pages. 
 
-    We also made use of the getStaticPaths() function to 
-    inform Next.js of the possible values that [postId].tsx 
-    page should be statically generated for: 1, 2, and 3. 
+    And if we inspect the `.next/server/pages/posts` folder, 
+    we should have 100 HTML and JSON files.
 
-    Now that we have an idea of static-site generation with 
-    dynamic parameters, in the next lesson, let's understand 
-    what happens when we build and serve the application.
+    The static generation is successful. 
 */
 
 import axios from 'axios';
@@ -160,18 +139,34 @@ function Post({ post }: PostProps) {
 export default Post;
 
 export const getStaticPaths: GetStaticPaths = async () => {
-    return {
-        paths: [
-            {
-                params: { postId: '1' },
-            },
-            {
-                params: { postId: '2' },
-            },
-            {
-                params: { postId: '3' },
+    const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
+    const data: PostType[] = response.data;
+
+    const paths = data.map((post: PostType) => {
+        return {
+            params: {
+                postId: `${post.id}`
             }
-        ],
+        };
+    });
+
+    // return {
+    //     paths: [
+    //         {
+    //             params: { postId: '1' },
+    //         },
+    //         {
+    //             params: { postId: '2' },
+    //         },
+    //         {
+    //             params: { postId: '3' },
+    //         }
+    //     ],
+    //     fallback: false
+    // };
+
+    return {
+        paths: paths,
         fallback: false
     };
 };
