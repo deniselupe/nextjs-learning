@@ -1,121 +1,38 @@
 /*
-    Fetching Paths for getStaticPaths
+    getStaticPaths fallback false
 
-    In our previous example, we learned about the 
-    getStaticPaths function which is used to inform Next.js 
-    about the different values to support when statically
-    generating a page. 
+    Let's now take a look at the fallback key 
+    returned from getStaticPaths. 
 
-    However for our understanding of getStaticPaths, we
-    have restricted the total number of posts to 3 in 
-    <PostsList />. 
+    The first to note about the fallback key is that 
+    it is mandatory. This is the reason why we had to include
+    it in the previous lessons. 
 
-    This also helped us with hard coding a list of three 
-    objects in the paths array inside getStaticPaths in 
-    [postId].tsx.
+    The fallback key accepts three possible values:
+        - false
+        - true
+        - 'blocking'
 
-    Now we can all agree this is not going to work 
-    in a practical real world application. For starters,
-    we don't want just the tree posts to be shown in 
-    <PostsList />.
+    When it comes to performance and user experience, 
+    understanding the behavior of static generation for each 
+    of these values is really important. 
 
-    The API sends 100 posts and we want all 100 posts 
-    to be displayed in our <PostsList /> component.
+    Here are the points to keep in mind:
+        - When 'fallback' is set to 'false', the first point is that 
+          'paths' returned from getStaticPaths will be rendered to HTML 
+          at build time by getStaticProps.
+        - If 'fallback' is set to 'false', then any paths not returned by 
+          getStaticPaths will result in a 404 page
 
-    And as far as getStaticPaths is concerned, the 
-    paths should be fetched dynamically and not hard-coded. 
+    Now, when would you use 'fallback' set to 'false'? 
 
-    Let's fix that. 
+    The 'false' value is most suitable if you have an application 
+    with a small number of parts to pre-render and new pages are 
+    not added often. 
 
-    Step 1:
-    In /posts/index.tsx we're going to remove the slice method. 
-    This will load all the 100 posts in the /posts route. But now 
-    that we are loading 100 posts, we also need to inform 
-    Next.js that 100 pages need to be statically generated. And 
-    as in the previous example, we do this using the getStaticPaths.
-
-    At the moment in [postId].tsx's getStaticPaths function, we 
-    have 3 postIds hard-coded which will generate three pages.
-
-    We could add 97 more objects here, and that would work... 
-    but that is not a feasible solution.
-
-    What we need is an array of 100 objects, where each object contains
-    a 'params' key which in turn contains the 'postId'. Now, 
-    the method to fetch all Ids of posts might vary depending 
-    on your backend.
-
-    If you have an API that provides the total count of posts, 
-    you can use that to create an array of postIds. However for our
-    scenario, we don't have such an API. 
-
-    What we can do for our example, is reuse the /posts API which 
-    will fetch all of the 100 posts with their postIds. We can then 
-    extract just the postId to create the paths array.
-
-    So from getStaticProps in /posts/index.tsx we are 
-    going to copy two lines which the lists of posts. 
-
-        const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
-        const data = response.data;
-
-    Back in [postId].tsx, we are going to paste that code 
-    within the getStaticPaths function.
-
-    Once we have the data which is the list of 100 posts, 
-    we map over it, and return an object with 'params' object and 
-    the 'postId' property.
-
-        const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
-        const data = response.data;
-
-        const paths = data.map((post) => {
-            return {
-                params: {
-                    postId: `${post.id}`
-                }
-            };
-        });
-
-    Now if you observe closely, the object returned here 
-    is similar to the hard-coded object from before. 
-
-    The API returns a numeric ID but we need a string, which is 
-    why we used template literals for the 'params.postId' value.
-
-    So we have basically created an array of 100 objects, with 
-    each object contains a 'params' key and the 'postId' 
-    ranges from 1 to 100. 
-
-    Now in our return statement, we can comment out the 
-    hard-coded paths array and instead make use of the paths 
-    constant we just created. 
-
-    So { paths: paths } or we can use the ES6 shorthand and 
-    specify just { paths }.
-
-    Now let's save both files and head back to the browser, we should 
-    see a list of 100 posts when we navigate to the /posts 
-    route. If we click on the first post, we see the corresponding 
-    details. If we have navigate to the 4th post as well now, the 
-    details are displayed as expect. 
-
-    So we have successfully informed Next.js to pre-render 
-    the 100 by dynamically fetching the postIds. 
-
-    Like mentioned earlier, the only way we could fetch the 
-    postIds, is by querying the /posts API. In the application
-    you are building, the logic might be different, but 
-    the end goal is the same. We created an array of paths, and 
-    returned it from getStaticPaths. 
-
-    Also, if we run the `npm run build` command, you can 
-    see that it is generating 105 pages. 
-
-    And if we inspect the `.next/server/pages/posts` folder, 
-    we should have 100 HTML and JSON files.
-
-    The static generation is successful. 
+    A blog site with a few articles is a good example for 'fallback' to 
+    be set to 'false'. Each blog post would be statically generated 
+    at build time which helps with faster load times and SEO.
 */
 
 import axios from 'axios';
