@@ -7,4 +7,4 @@ const PostSchema = z.object({
     body: z.string()
 });
 
-export interface PostType extends z.infer<typeof PostSchema> {}
+export type PostType = z.infer<typeof PostSchema>;
